@@ -1,106 +1,134 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mortgage Calculator</title>
+    <meta http-equiv="refresh" content="60">
+    <style>
+        body {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 20px;
+        }
+
+        .left-column,
+        .right-column {
+            width: 48%;
+            /* Adjust as needed */
+        }
+
+        .left-column {
+            margin-right: 10px;
+        }
+
+        .right-column {
+            background-color: #f2f2f2;
+            padding: 10px;
+        }
+    </style>
     <script src="https://unpkg.com/htmx.org@1.6.1/dist/htmx.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
+
 <body>
-    <h1>Mortgage Calculator</h1>
-    <form id="mortgage-form" hx-post="/calculate-mortgage" hx-target="#result" hx-swap="innerHTML">
-        <label for="loanAmount">Loan Amount:</label>
-        <!-- Use a slider for loan amount -->
-        <input type="range" id="loanAmount" name="loanAmount" min="1000" max="100000" step="1000" value="10000">
-        <!-- Display loan amount value -->
-        <output id="loanAmountOutput"></output><br>
+    <div class="left-column">
+        <h1>Mortgage Calculator</h1>
+        <form id="mortgage-form">
+            <input type="number" id="loanAmount" placeholder="Loan Amount" required>
+            <button type="button" onclick="calculateMortgage()">Calculate Mortgage</button>
+        </form>
+        <div id="result"></div>
+    </div>
 
-        <label for="interestRate">Interest Rate:</label>
-        <input type="number" id="interestRate" name="interestRate" min="0" max="100" step="0.1" value="4.5" required><br>
+    <div class="right-column">
+        <h2>Bank Data</h2>
+        <ul id="bank-list">
+            <!-- Bank data will be populated here -->
+        </ul>
+        <form id="bank-form">
+            <input type="text" id="bankName" placeholder="Bank Name" required>
+            <input type="number" id="fixedRate" placeholder="Fixed Rate (%)" required>
+            <input type="number" id="variableRate" placeholder="Variable Rate (%)" required>
+            <button type="button" onclick="createBank()">Add Bank</button>
+        </form>
+    </div>
 
-        <label for="loanTerm">Loan Term (years):</label>
-        <input type="number" id="loanTerm" name="loanTerm" min="1" max="30" step="1" value="20" required><br>
-
-        <button type="submit">Calculate Mortgage</button>
-    </form>
-    <canvas id="mortgageChart" width="400" height="400"></canvas>
 
     <script>
-        // Display loan amount value dynamically
-        const loanAmountInput = document.getElementById('loanAmount');
-        const loanAmountOutput = document.getElementById('loanAmountOutput');
-        loanAmountOutput.textContent = loanAmountInput.value;
-
-        loanAmountInput.addEventListener('input', function() {
-            loanAmountOutput.textContent = this.value;
-        });
-
-        const ctx = document.getElementById('mortgageChart').getContext('2d');
-        let chart;
-
-        // Function to update Chart.js chart with new data
-        const updateChart = (data) => {
-            if (chart) {
-                chart.destroy();
-            }
-            chart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['Loan Amount', 'Interest Rate', 'Loan Term', 'Monthly Payment'],
-                    datasets: [{
-                        label: 'Mortgage Details',
-                        data: data,
-                        backgroundColor: [
-                            'rgba(255, 99, 132, 0.2)',
-                            'rgba(54, 162, 235, 0.2)',
-                            'rgba(255, 206, 86, 0.2)',
-                            'rgba(75, 192, 192, 0.2)'
-                        ],
-                        borderColor: [
-                            'rgba(255, 99, 132, 1)',
-                            'rgba(54, 162, 235, 1)',
-                            'rgba(255, 206, 86, 1)',
-                            'rgba(75, 192, 192, 1)'
-                        ],
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    }
+        // Define bank data directly in JavaScript
+        let bankData = [
+            {
+                "name": "Bank A",
+                "rates": {
+                    "fixed": 4.0,
+                    "variable": 3.25
                 }
+            },
+            {
+                "name": "Bank B",
+                "rates": {
+                    "fixed": 3.85,
+                    "variable": 3.1
+                }
+            },
+            {
+                "name": "Bank C",
+                "rates": {
+                    "fixed": 4.25,
+                    "variable": 3.5
+                }
+            }
+        ];
+
+        function populateBankData() {
+            const bankList = document.getElementById("bank-list");
+            bankList.innerHTML = ""; // Clear previous data
+
+            bankData.forEach(bank => {
+                const listItem = document.createElement("li");
+                listItem.textContent = `${bank.name}: Fixed - ${bank.rates.fixed}%, Variable - ${bank.rates.variable}%`;
+                bankList.appendChild(listItem);
             });
-        };
+        }
 
-        // Function to extract mortgage data from form and update chart
-        const handleSubmit = async () => {
-            const formData = new FormData(document.getElementById('mortgage-form'));
-            const loanAmount = parseInt(formData.get('loanAmount'));
-            const interestRate = parseFloat(formData.get('interestRate'));
-            const loanTerm = parseInt(formData.get('loanTerm'));
+        function createBank() {
+            const bankName = document.getElementById("bankName").value;
+            const fixedRate = parseFloat(document.getElementById("fixedRate").value);
+            const variableRate = parseFloat(document.getElementById("variableRate").value);
 
-            const monthlyPayment = calculateMonthlyPayment(loanAmount, interestRate, loanTerm);
-            updateChart([loanAmount, interestRate, loanTerm, monthlyPayment]);
-        };
+            // Generate a unique ID (you can use a library like UUID for production)
+            const id = Math.max(...bankData.map(bank => bank.id), 0) + 1;
 
-        // Function to calculate monthly mortgage payment
-        const calculateMonthlyPayment = (loanAmount, interestRate, loanTerm) => {
+            // Add the new bank to the bankData array
+            bankData.push({name: bankName, rates: {fixed: fixedRate, variable: variableRate}});
+
+            // Repopulate bank data and clear form fields
+            populateBankData();
+            document.getElementById("bank-form").reset();
+        }
+
+
+        function calculateMonthlyPayment(loanAmount, interestRate, loanTerm) {
             const monthlyInterestRate = interestRate / 100 / 12;
             const numberOfPayments = loanTerm * 12;
-            const monthlyPayment = loanAmount * monthlyInterestRate / (1 - (1 + monthlyInterestRate) ** -numberOfPayments);
-            return monthlyPayment.toFixed(2);
-        };
+            const monthlyPayment = loanAmount * monthlyInterestRate / (1 - Math.pow(1 + monthlyInterestRate, -numberOfPayments));
+            return monthlyPayment;
+        }
 
-        // Submit form handler
-        document.getElementById('mortgage-form').addEventListener('submit', function(event) {
-            event.preventDefault();
-            handleSubmit();
-        });
+        // Function to calculate mortgage
+        function calculateMortgage() {
+            const loanAmount = parseFloat(document.getElementById('loanAmount').value);
+            const interestRate = parseFloat(bankData[0].rates.fixed); // Use fixed rate from Bank A 
+            const loanTerm = 5
+            const monthlyPayment = calculateMonthlyPayment(loanAmount, interestRate, loanTerm);
+            console.log(`monthlyPayment: $${monthlyPayment}`);
+            document.getElementById('result').textContent = `Monthly Payment: $${monthlyPayment.toFixed(2)}`;
+        }
+
+        populateBankData();       
     </script>
 </body>
-</html>
 
+</html>

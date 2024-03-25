@@ -1,0 +1,26 @@
+{
+  "banks": [
+    {
+      "name": "Bank A",
+      "rates": {
+        "fixed": 4.0,
+        "variable": 3.25
+      }
+    },
+    {
+      "name": "Bank B",
+      "rates": {
+        "fixed": 3.85,
+        "variable": 3.1
+      }
+    },
+    {
+      "name": "Bank C",
+      "rates": {
+        "fixed": 4.25,
+        "variable": 3.5
+      }
+    }
+  ]
+}
+
